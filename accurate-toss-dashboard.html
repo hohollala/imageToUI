@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>토스 투자 - 실시간 차트</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Toss Face', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Pretendard', system-ui, sans-serif;
+            background-color: #0c0c0c;
+            color: #ffffff;
+            line-height: 1.4;
+        }
+
+        /* 상단 네비게이션 */
+        .top-nav {
+            background-color: #1a1a1a;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+        }
+
+        .nav-item {
+            color: #b8b8b8;
+            font-size: 15px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .nav-item:hover {
+            color: #ffffff;
+        }
+
+        .search-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-box {
+            background-color: #2a2a2a;
+            border: 1px solid #404040;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: 14px;
+            color: #ffffff;
+            width: 240px;
+            outline: none;
+        }
+
+        .search-box::placeholder {
+            color: #666666;
+        }
+
+        /* 카테고리 탭 */
+        .category-section {
+            background-color: #0c0c0c;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: center;
+            gap: 0;
+        }
+
+        .category-tab {
+            background: none;
+            border: none;
+            color: #666666;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 10px 24px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .category-tab.active {
+            background-color: #0064ff;
+            color: #ffffff;
+        }
+
+        .category-tab:hover:not(.active) {
+            color: #b8b8b8;
+        }
+
+        /* 메인 레이아웃 */
+        .main-layout {
+            display: flex;
+            max-width: 1400px;
+            margin: 0 auto;
+            gap: 24px;
+            padding: 20px;
+        }
+
+        /* 왼쪽 주식 테이블 섹션 */
+        .stocks-section {
+            flex: 2.2;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .update-time {
+            font-size: 13px;
+            color: #666666;
+        }
+
+        /* 탭 네비게이션 */
+        .tab-navigation {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .nav-tab {
+            color: #666666;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            padding: 8px 0;
+            position: relative;
+            transition: color 0.2s;
+        }
+
+        .nav-tab.active {
+            color: #0064ff;
+            font-weight: 600;
+        }
+
+        .nav-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -12px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: #0064ff;
+        }
+
+        .investment-risk-notice {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: #0064ff;
+            font-size: 12px;
+        }
+
+        /* 시간 필터 */
+        .time-filters {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 16px 0 20px 0;
+        }
+
+        .filter-label {
+            color: #666666;
+            font-size: 13px;
+        }
+
+        .time-filter-btn {
+            background-color: #2a2a2a;
+            border: 1px solid #404040;
+            color: #b8b8b8;
+            font-size: 12px;
+            padding: 6px 14px;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .time-filter-btn.active,
+        .time-filter-btn:hover {
+            background-color: #0064ff;
+            border-color: #0064ff;
+            color: #ffffff;
+        }
+
+        /* 주식 테이블 */
+        .stocks-table {
+            background-color: #1a1a1a;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .table-header {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1.2fr;
+            padding: 16px 20px;
+            background-color: #1a1a1a;
+            border-bottom: 1px solid #2a2a2a;
+            font-size: 13px;
+            color: #666666;
+            font-weight: 500;
+        }
+
+        .stock-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1.2fr;
+            padding: 16px 20px;
+            border-bottom: 1px solid #2a2a2a;
+            transition: background-color 0.2s;
+            cursor: pointer;
+        }
+
+        .stock-row:hover {
+            background-color: #222222;
+        }
+
+        .stock-row:last-child {
+            border-bottom: none;
+        }
+
+        .stock-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .stock-rank {
+            font-size: 14px;
+            color: #666666;
+            font-weight: 600;
+            min-width: 20px;
+        }
+
+        .stock-logo {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .stock-name {
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .stock-price {
+            text-align: right;
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .stock-change {
+            text-align: right;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .positive {
+            color: #ff4757;
+        }
+
+        .negative {
+            color: #2196f3;
+        }
+
+        .stock-volume {
+            text-align: right;
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* 페이지네이션 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 24px;
+        }
+
+        .page-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background-color: #2a2a2a;
+            color: #b8b8b8;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .page-btn.active {
+            background-color: #0064ff;
+            color: #ffffff;
+        }
+
+        .page-btn:hover:not(.active) {
+            background-color: #404040;
+        }
+
+        /* 오른쪽 사이드바 */
+        .sidebar {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .widget {
+            background-color: #1a1a1a;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .widget-header {
+            display: flex;
+            align-items: center;
+            justify-content: between;
+            margin-bottom: 16px;
+        }
+
+        .widget-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .widget-link {
+            color: #0064ff;
+            font-size: 12px;
+            text-decoration: none;
+        }
+
+        .calendar-tabs {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .calendar-tab {
+            color: #666666;
+            font-size: 13px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .calendar-tab.active {
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        /* 지수 목록 */
+        .index-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .index-item:last-child {
+            border-bottom: none;
+        }
+
+        .index-chart {
+            width: 48px;
+            height: 24px;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chart-positive {
+            background: linear-gradient(135deg, #ff4757 0%, #ff6b7d 100%);
+        }
+
+        .chart-negative {
+            background: linear-gradient(135deg, #2196f3 0%, #42a5f5 100%);
+        }
+
+        .index-details {
+            flex: 1;
+        }
+
+        .index-name {
+            font-size: 13px;
+            color: #b8b8b8;
+            margin-bottom: 2px;
+        }
+
+        .index-value {
+            font-size: 15px;
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .index-change-value {
+            font-size: 13px;
+            font-weight: 500;
+            margin-left: 8px;
+        }
+
+        /* 뉴스 섹션 */
+        .news-item {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .news-thumbnail {
+            width: 60px;
+            height: 60px;
+            background-color: #2a2a2a;
+            border-radius: 8px;
+            flex-shrink: 0;
+        }
+
+        .news-content h3 {
+            font-size: 14px;
+            color: #ffffff;
+            font-weight: 500;
+            line-height: 1.4;
+            margin: 0;
+        }
+
+        /* 반응형 */
+        @media (max-width: 1200px) {
+            .main-layout {
+                flex-direction: column;
+            }
+            
+            .table-header,
+            .stock-row {
+                font-size: 12px;
+                padding: 12px 16px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-left {
+                gap: 16px;
+            }
+            
+            .search-box {
+                width: 180px;
+            }
+            
+            .tab-navigation {
+                overflow-x: auto;
+                gap: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 상단 네비게이션 -->
+    <nav class="top-nav">
+        <div class="nav-left">
+            <a href="#" class="nav-item">홈</a>
+            <a href="#" class="nav-item">뉴스</a>
+            <a href="#" class="nav-item">주식 끌어보기</a>
+            <a href="#" class="nav-item">내 계좌</a>
+        </div>
+        
+        <div class="search-container">
+            <input type="text" class="search-box" placeholder="종목을 검색하세요">
+        </div>
+    </nav>
+
+    <!-- 카테고리 섹션 -->
+    <div class="category-section">
+        <button class="category-tab active">전체</button>
+        <button class="category-tab">국내</button>
+        <button class="category-tab">장현</button>
+        <button class="category-tab">해외</button>
+        <button class="category-tab">장현</button>
+    </div>
+
+    <!-- 메인 레이아웃 -->
+    <div class="main-layout">
+        <!-- 왼쪽: 주식 목록 -->
+        <div class="stocks-section">
+            <div class="section-header">
+                <h1 class="section-title">실시간 차트</h1>
+                <div class="update-time">오늘 08:50 기준</div>
+            </div>
+
+            <div class="tab-navigation">
+                <a href="#" class="nav-tab active">토스증권 거래대금</a>
+                <a href="#" class="nav-tab">토스증권 거래량</a>
+                <a href="#" class="nav-tab">거래대금</a>
+                <a href="#" class="nav-tab">거래량</a>
+                <a href="#" class="nav-tab">급상승</a>
+                <a href="#" class="nav-tab">급하락</a>
+                <a href="#" class="nav-tab">인기</a>
+                
+                <div class="investment-risk-notice">
+                    <span>🔵</span>
+                    <span>투자위험 주식 승인</span>
+                </div>
+            </div>
+
+            <div class="time-filters">
+                <span class="filter-label">실시간</span>
+                <button class="time-filter-btn active">1일</button>
+                <button class="time-filter-btn">1주일</button>
+                <button class="time-filter-btn">1개월</button>
+                <button class="time-filter-btn">3개월</button>
+                <button class="time-filter-btn">6개월</button>
+                <button class="time-filter-btn">1년</button>
+            </div>
+
+            <div class="stocks-table">
+                <div class="table-header">
+                    <div>순위</div>
+                    <div>현재가</div>
+                    <div>등락률</div>
+                    <div>거래대금 많은 순</div>
+                </div>
+
+                <div class="stock-row">
+                    <div class="stock-info">
+                        <span class="stock-rank">1</span>
+                        <div class="stock-logo" style="background-color: #4caf50;">🏛️</div>
+                        <span class="stock-name">PTIR</span>
+                    </div>
+                    <div class="stock-price">49,125원</div>
+                    <div class="stock-change positive">+5.2%</div>
+                    <div class="stock-volume">2.1억원</div>
+                </div>
+
+                <div class="stock-row">
+                    <div class="stock-info">
+                        <span class="stock-rank">2</span>
+                        <div class="stock-logo" style="background-color: #2196f3;">🔵</div>
+                        <span class="stock-name">CONL</span>
+                    </div>
+                    <div class="stock-price">46,301원</div>
+                    <div class="stock-change negative">-0.3%</div>
+                    <div class="stock-volume">3,734만원</div>
+                </div>
+
+                <div class="stock-row">
+                    <div class="stock-info">
+                        <span class="stock-rank">3</span>
+                        <div class="stock-logo" style="background-color: #ff9800;">🏢</div>
+                        <span class="stock-name">XRPT</span>
+                    </div>
+                    <div class="stock-price">33,594원</div>
+                    <div class="stock-change positive">+16.0%</div>
+                    <div class="stock-volume">3,562만원</div>
+                </div>
+
+                <div class="stock-row">
+                    <div class="stock-info">
+                        <span class="stock-rank">4</span>
+                        <div class="stock-logo" style="background-color: #9c27b0;">🔷</div>
+                        <span class="stock-name">TEMT</span>
+                    </div>
+                    <div class="stock-price">26,369원</div>
+                    <div class="stock-change positive">+6.8%</div>
+                    <div class="stock-volume">2,976만원</div>
+                </div>
+
+                <div class="stock-row">
+                    <div class="stock-info">
+                        <span class="stock-rank">5</span>
+                        <div class="stock-logo" style="background-color: #f44336;">▶️</div>
+                        <span class="stock-name">SKC</span>
+                    </div>
+                    <div class="stock-price">100,100원</div>
+                    <div class="stock-change positive">+0.4%</div>
+                    <div class="stock-volume">2,512만원</div>
+                </div>
+
+                <div class="stock-row">
+                    <div class="stock-info">
+                        <span class="stock-rank">6</span>
+                        <div class="stock-logo" style="background-color: #607d8b;">🔘</div>
+                        <span class="stock-name">OCI</span>
+                    </div>
+                    <div class="stock-price">58,700원</div>
+                    <div class="stock-change positive">+0.3%</div>
+                    <div class="stock-volume">2,477만원</div>
+                </div>
+
+                <div class="stock-row">
+                    <div class="stock-info">
+                        <span class="stock-rank">7</span>
+                        <div class="stock-logo" style="background-color: #795548;">⚪</div>
+                        <span class="stock-name">스프로스 파워 홀딩</span>
+                    </div>
+                    <div class="stock-price">2,145원</div>
+                    <div class="stock-change positive">+32.4%</div>
+                    <div class="stock-volume">2,385만원</div>
+                </div>
+
+                <div class="stock-row">
+                    <div class="stock-info">
+                        <span class="stock-rank">8</span>
+                        <div class="stock-logo" style="background-color: #00bcd4;">🌊</div>
+                        <span class="stock-name">델타크놀로지스</span>
+                    </div>
+                    <div class="stock-price">190,479원</div>
+                    <div class="stock-change positive">+2.7%</div>
+                    <div class="stock-volume">2,384만원</div>
+                </div>
+
+                <div class="stock-row">
+                    <div class="stock-info">
+                        <span class="stock-rank">9</span>
+                        <div class="stock-logo" style="background-color: #3f51b5;">🔹</div>
+                        <span class="stock-name">투어드마틴</span>
+                    </div>
+                    <div class="stock-price">589,157원</div>
+                    <div class="stock-change negative">-1.1%</div>
+                    <div class="stock-volume">2,122만원</div>
+                </div>
+
+                <div class="stock-row">
+                    <div class="stock-info">
+                        <span class="stock-rank">10</span>
+                        <div class="stock-logo" style="background-color: #ff5722;">📊</div>
+                        <span class="stock-name">원데이클럽</span>
+                    </div>
+                    <div class="stock-price">183,100원</div>
+                    <div class="stock-change negative">-5.0%</div>
+                    <div class="stock-volume">2,087만원</div>
+                </div>
+            </div>
+
+            <div style="color: #ff4757; font-size: 13px; margin: 16px 0; text-align: center;">
+                종목 최근 1년 사이 +299.7% 상승했어요. >
+            </div>
+
+            <div class="pagination">
+                <button class="page-btn active">1</button>
+                <button class="page-btn">2</button>
+                <button class="page-btn">3</button>
+                <button class="page-btn">4</button>
+                <button class="page-btn">5</button>
+                <span style="color: #666666; padding: 0 8px;">...</span>
+                <button class="page-btn">10</button>
+                <button class="page-btn">‹</button>
+                <button class="page-btn">›</button>
+            </div>
+        </div>
+
+        <!-- 오른쪽: 사이드바 -->
+        <div class="sidebar">
+            <!-- 주식 캘린더 -->
+            <div class="widget">
+                <div class="widget-header">
+                    <h2 class="widget-title">주식 캘린더</h2>
+                    <a href="#" class="widget-link">더거운는 주식 일정 보기 ></a>
+                </div>
+                
+                <div class="calendar-tabs">
+                    <div class="calendar-tab active">지수 · 환율</div>
+                    <div class="calendar-tab">채권</div>
+                    <div class="calendar-tab">원자재</div>
+                </div>
+            </div>
+
+            <!-- 지수 위젯 -->
+            <div class="widget">
+                <div class="index-item">
+                    <div class="index-chart chart-positive"></div>
+                    <div class="index-details">
+                        <div class="index-name">나스닥</div>
+                        <div class="index-value">
+                            21,450.02
+                            <span class="index-change-value positive">+207.33 (0.9%)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="index-item">
+                    <div class="index-chart chart-positive"></div>
+                    <div class="index-details">
+                        <div class="index-name">S&P 500</div>
+                        <div class="index-value">
+                            6,389.45
+                            <span class="index-change-value positive">+49.45 (0.7%)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="index-item">
+                    <div class="index-chart chart-negative"></div>
+                    <div class="index-details">
+                        <div class="index-name">VIX</div>
+                        <div class="index-value">
+                            15.15
+                            <span class="index-change-value negative">-1.42 (8.5%)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="index-item">
+                    <div class="index-chart chart-positive"></div>
+                    <div class="index-details">
+                        <div class="index-name">환율</div>
+                        <div class="index-value">
+                            1,393.80
+                            <span class="index-change-value positive">+9.6 (0.6%)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="index-item">
+                    <div class="index-chart chart-negative"></div>
+                    <div class="index-details">
+                        <div class="index-name">달러 인덱스</div>
+                        <div class="index-value">
+                            98.18
+                            <span class="index-change-value negative">-0.22 (0.2%)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="index-item">
+                    <div class="index-chart chart-negative"></div>
+                    <div class="index-details">
+                        <div class="index-name">코스피</div>
+                        <div class="index-value">
+                            3,210.01
+                            <span class="index-change-value negative">-17.67 (0.5%)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="index-item">
+                    <div class="index-chart chart-positive"></div>
+                    <div class="index-details">
+                        <div class="index-name">코스닥</div>
+                        <div class="index-value">
+                            809.27
+                            <span class="index-change-value positive">+3.46 (0.4%)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 뉴스 위젯 -->
+            <div class="widget">
+                <div class="widget-header">
+                    <h2 class="widget-title">주요 뉴스</h2>
+                    <a href="#" class="widget-link">추천 뉴스</a>
+                </div>
+                
+                <div class="news-item">
+                    <div class="news-thumbnail"></div>
+                    <div class="news-content">
+                        <h3>트럼프지지 시장 업번 '인텔 CE<br>O'...중국 과의 무역 '불안'</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 인터랙티브 기능
+        document.addEventListener('DOMContentLoaded', function() {
+            // 카테고리 탭
+            const categoryTabs = document.querySelectorAll('.category-tab');
+            categoryTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    categoryTabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                });
+            });
+
+            // 네비게이션 탭
+            const navTabs = document.querySelectorAll('.nav-tab');
+            navTabs.forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    navTabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                });
+            });
+
+            // 시간 필터
+            const timeFilters = document.querySelectorAll('.time-filter-btn');
+            timeFilters.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    timeFilters.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                });
+            });
+
+            // 캘린더 탭
+            const calendarTabs = document.querySelectorAll('.calendar-tab');
+            calendarTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    calendarTabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                });
+            });
+
+            // 페이지네이션
+            const pageButtons = document.querySelectorAll('.page-btn');
+            pageButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (!isNaN(btn.textContent)) {
+                        pageButtons.forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                    }
+                });
+            });
+
+            // 주식 행 클릭
+            const stockRows = document.querySelectorAll('.stock-row');
+            stockRows.forEach(row => {
+                row.addEventListener('click', () => {
+                    console.log('주식 상세 페이지로 이동');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

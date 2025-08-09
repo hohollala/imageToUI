@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__firebase-mcp__ping",
+      "Bash(npm run build:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm install:*)",
+      "Bash(npm test)",
+      "Bash(node:*)",
+      "Bash(start stock-dashboard-generated.html)",
+      "Bash(ITU-init:*)",
+      "Bash(claude mcp:*)"
+    ],
+    "deny": []
+  }
+}
